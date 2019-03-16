@@ -8,21 +8,21 @@
 #include "ns3/ipv4-nix-vector-helper.h"
 #include "ns3/topology-read-module.h"
 #include <list>
+#include "wifi-example-apps.h"
 
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("TopologyCreationExperiment");
 
 const uint16_t listenPort=12345;
+const int HELLO_SIZE=30;
 std::map<uint32_t,std::vector<Ipv4Address>> ipv4NeighMap;
 
+void Init(Ptr<Node> n, Ipv4Address dstaddr);
 void HandleAccept (Ptr<Socket>, const Address &);
-
-void SetFinTag();
+   
+TimestampTag ReqTag;
 void SetReqTag();
-void SetPaymentTag();
-void SetRcvPaymentTag();
-void SetInvTag();
 
 int main(int argc, char const *argv[])
 {
@@ -132,8 +132,7 @@ int main(int argc, char const *argv[])
     InetSocketAddress dst = InetSocketAddress(Ipv4Address::GetAny(),listenPort);
     // NodeContainer::GetN():返回node总数
     for (uint32_t i = 0; i < nodes.GetN(); i++ ) {
-        // TcpSocketFactory::GetTypeId()
-        Ptr<Socket> dstSocket = Socket::CreateSocket(nodes.Get(i), TypeId::LookupByName("ns3::TcpSocketFactory"));
+        Ptr<Socket> dstSocket = Socket::CreateSocket(nodes.Get(i),TcpSocketFactory::GetTypeId());
         dstSocket->SetAttribute("RcvBufSize", UintegerValue(totalTxBytes));
         dstSocket->Bind(dst);
         dstSocket->Listen();
@@ -146,12 +145,7 @@ int main(int argc, char const *argv[])
     // AnimationInterface anim ("animation.xml");
     // p2p.EnablePcapAll ("tcp-socket-piece-200ms");
 
-    TODO:
     Simulator::Schedule(Seconds(0.01),&SetReqTag);
-    Simulator::Schedule(Seconds(0.02),&SetFinTag);
-    Simulator::Schedule(Seconds(0.03),&SetPaymentTag);
-    Simulator::Schedule(Seconds(0.04),&SetRcvPaymentTag);
-    Simulator::Schedule(Seconds(0.05),&SetInvTag);
     for(int i=0;i<count;i++) {
         Simulator::Schedule(Seconds(0.1+0.0001*i),&Init,nodes.Get(0),ipInterfaces[0].GetAddress(1));
     }
@@ -168,3 +162,40 @@ int main(int argc, char const *argv[])
 
     return 0;
 }
+
+void SetReqTag() {
+    ReqTag.SetTimestamp (Simulator::Now ());
+}
+
+void HandleAccept (Ptr<Socket> s, const Address& from) {
+    NS_LOG_INFO("HandleAccept");
+    s->SetRecvCallback (MakeCallback (&dstSocketRecv));
+    TODO:
+}
+
+void HandleRecv (Ptr<Socket> s) {
+
+}
+
+void  Init( Ptr<Node> n,Ipv4Address dstaddr) {
+    TimestampTag initBlockTag;
+    initBlockTag.SetTimestamp(Simulator::Now ());
+    NS_ASSERT(!initBlockTag.Equal(ReqTag));
+    SendHelloPacketWithTag(n,dstaddr,HELLO_SIZE,initBlockTag);
+    return;
+}
+
+void SendHelloPacketWithTag(Ptr<Node> n,Ipv4Address dst,int size,Tag tag) {
+    NS_ASSERT(size>0);
+    Ptr<Socket> sendSocket = Socket::CreateSocket(n,TcpSocketFactory::GetTypeId());
+    sendSocket->Connect(InetSocketAddress(dst,listenPort)); 
+    Ptr<Packet> p = Create<Packet> (reinterpret_cast<const uint8_t*> ("hello"),5,true);
+    p->AddByteTag(tag);
+    sendSocket->Send(p);
+    if(sendSocket) {
+        sendSocket->Close();
+    }
+    return;
+}
+
+
