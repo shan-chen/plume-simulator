@@ -132,11 +132,12 @@ int main(int argc, char const *argv[])
     InetSocketAddress dst = InetSocketAddress(Ipv4Address::GetAny(),listenPort);
     // NodeContainer::GetN():返回node总数
     for (uint32_t i = 0; i < nodes.GetN(); i++ ) {
-        Ptr<Socket> dstSocket = Socket::CreateSocket(nodes.Get(i),TcpSocketFactory::GetTypeId());
-        dstSocket->SetAttribute("RcvBufSize", UintegerValue(totalTxBytes));
-        dstSocket->Bind(dst);
-        dstSocket->Listen();
-        dstSocket->SetAcceptCallback (
+        Ptr<Socket> socket = Socket::CreateSocket(nodes.Get(i),TcpSocketFactory::GetTypeId());
+        TODO:
+        //socket->SetAttribute("RcvBufSize", UintegerValue(totalTxBytes));
+        socket->Bind(dst);
+        socket->Listen();
+        socket->SetAcceptCallback (
             MakeNullCallback<bool, Ptr<Socket>, const Address &> (),
             MakeCallback(&HandleAccept)
         );
@@ -169,12 +170,32 @@ void SetReqTag() {
 
 void HandleAccept (Ptr<Socket> s, const Address& from) {
     NS_LOG_INFO("HandleAccept");
-    s->SetRecvCallback (MakeCallback (&dstSocketRecv));
+    s->SetRecvCallback(MakeCallback(HandleRecv));
     TODO:
 }
 
-void HandleRecv (Ptr<Socket> s) {
+void HandleRecv (Ptr<Socket> socket) {
+    NS_LOG_INFO("HandleRecv");
+    Ptr<Packet> packet;
+    Address from;
+    while ((packet=socket->RecvFrom(from))) {
+        if (packet->GetSize()==0) {
+            // EOF
+            break;
+        }
 
+        std::string delimiter = "#";
+        std::string parsedPacket;
+        char *packetInfo = new char[packet->GetSize () + 1];
+        packet->CopyData(reinterpret_cast<uint8_t*>(packetInfo), packet->GetSize());
+        packetInfo[packet->GetSize ()] = '\0'; 
+        std::string receivedData = packetInfo;
+
+        size_t pos;
+        while ((pos = receivedData.find(delimiter)) != std::string::npos) {
+            parsedPacket = receivedData.substr(0,pos) 
+        }
+    }
 }
 
 void  Init( Ptr<Node> n,Ipv4Address dstaddr) {
@@ -189,7 +210,7 @@ void SendHelloPacketWithTag(Ptr<Node> n,Ipv4Address dst,int size,Tag tag) {
     NS_ASSERT(size>0);
     Ptr<Socket> sendSocket = Socket::CreateSocket(n,TcpSocketFactory::GetTypeId());
     sendSocket->Connect(InetSocketAddress(dst,listenPort)); 
-    Ptr<Packet> p = Create<Packet> (reinterpret_cast<const uint8_t*> ("hello"),5,true);
+    Ptr<Packet> p = Create<Packet> (reinterpret_cast<const uint8_t*>("hello"),5,true);
     p->AddByteTag(tag);
     sendSocket->Send(p);
     if(sendSocket) {
@@ -198,4 +219,34 @@ void SendHelloPacketWithTag(Ptr<Node> n,Ipv4Address dst,int size,Tag tag) {
     return;
 }
 
+void SendMessage(enum Messages recvType,enum Messages respType,rapidjson::Document &d,Ptr<Socket> socket) {
+    NS_LOG_INFO("Send Message");
+    // 向指定socket发送数据包
+    // json转成string后转为字节流发送
+    const uint8_t delimiter[] = "#";
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    d["message"].SetInt(responseMessage);
+    d.Accept(buffer);
+    TODO:发送字节流和packet区别? 第二次send #?
+    socket->Send(reinterpret_cast<const uint8_t*>(buffer.GetString()),buffer.GetSize(),0);
+    switch (d["message"].GetInt()) {
+        
+    }
+}
 
+void BroadcastMessage(rapidjson::Document &d) {
+    NS_LOG_INFO("BroadcastMessage");
+    // 广播消息
+    TODO:传入为结构化数据，再解析成json
+
+
+
+
+}
+
+void StartApplication() {
+    NS_LOG_INFO("StartApplication");
+    // 启动应用
+    TODO:建立socket
+}
