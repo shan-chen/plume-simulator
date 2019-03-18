@@ -11,7 +11,7 @@ public:
     virtual ~DAG(void);
 
     TODO:dag包含信息
-    
+    std::map<std::vector<string>,std::vector<string>> m_dag;
 };
 
 #endif

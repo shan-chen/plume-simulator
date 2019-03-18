@@ -24,14 +24,15 @@ public:
     void SendMessage(enum Messages recvType, enum Messages respType, rapidjson::Document &d, Address &address);
     void BroadcasrNewBlock(const Block &block);
 
+    uint32_t      m_nodeID;
     Ptr<Socket>   m_socket;
-    Address       m_local;
-    TypeId        m_tid;
+    //Address       m_local;
+    //TypeId        m_tid;
     int           m_numOfPeers;
     DAG           m_dag;
 
     std::vector<Ipv4Address>               m_peersAddresses;
-    std::map<IpvsAddress, Ptr<Socket>>     m_peersSockets;
+    std::map<Ipv4Address, Ptr<Socket>>     m_peersSockets;
 
     const int m_plumePort;
 };
