@@ -3,7 +3,7 @@
 
 #include "ns3/application.h"
 #include "ns3/ptr.h"
-#include "ns3/address/h"
+#include "ns3/address.h"
 
 #include "plume-simulator/message.h"
 #include "plume-simulator/dag.h"
@@ -34,7 +34,7 @@ public:
     std::vector<Ipv4Address>               m_peersAddresses;
     std::map<Ipv4Address, Ptr<Socket>>     m_peersSockets;
 
-    const int m_plumePort;
+    //const int m_plumePort;
 };
 
 #endif

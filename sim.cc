@@ -1,3 +1,11 @@
+#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/ipv4-nix-vector-helper.h"
+#include "ns3/topology-read-module.h"
+
 #include "plume-simulator/plume.h"
 
 const uint16_t listenPort=8787;
@@ -143,12 +151,7 @@ int main(int argc, char const *argv[])
         dynamic_cast<Plume*>((*i)->GetApplication(0))->m_peersSockets = peersSockets;
     }
 
-    Simulator::Schedule(Seconds(0.01),&SetReqTag);
-    for(int i=0;i<count;i++) {
-        Simulator::Schedule(Seconds(0.1+0.0001*i),&Init,nodes.Get(0),ipInterfaces[0].GetAddress(1));
-    }
-
-    NS_LOG_INFO("Simulation start");
+    NS_LOG_INFO("Simulation Start");
     Simulator::Run();
     Simulator::Destroy();
 
