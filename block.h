@@ -8,7 +8,7 @@ public:
     Block();
     virtual ~Block(void);
 
-    TODO:区块包含哪些信息 时间戳表示
+    TODO:区块包含哪些信息:不包括交易;时间戳表示;
     int                 m_ownerId;
     std::string         m_hash;
     std::vector<string> m_refHashList;

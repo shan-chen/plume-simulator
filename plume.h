@@ -18,8 +18,10 @@ public:
     static TypeId GetTypeId(void);
     virtual ~Plume(void);
 
-    void HandleRecv(Ptr<Socket> scoket);
+    std::vector<Ipv4Address> GetPeersAddresses();
+    std::vector<Ptr<Socket>> GetPeersSocket();
     void HandleAccept(Ptr<Socket> socket, const Address &from);
+    void HandleRead(Ptr<Socket> socket);
     void SendMessage(enum Messages recvType, enum Messages respType, rapidjson::Document &d, Ptr<Socket> socket);
     void SendMessage(enum Messages recvType, enum Messages respType, rapidjson::Document &d, Address &address);
     void BroadcasrNewBlock(const Block &block);
@@ -29,10 +31,12 @@ public:
     //Address       m_local;
     //TypeId        m_tid;
     int           m_numOfPeers;
+    TODO:local dag表示
     DAG           m_dag;
 
     std::vector<Ipv4Address>               m_peersAddresses;
     std::map<Ipv4Address, Ptr<Socket>>     m_peersSockets;
+    std::map<Address, std::string>               m_bufferedData;
 
     //const int m_plumePort;
 };
