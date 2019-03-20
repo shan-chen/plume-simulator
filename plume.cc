@@ -59,7 +59,7 @@ void Plume::HandleRead(Ptr<Socket> socket) {
     double newBlockReceiveTime = Simulator::Now ().GetSeconds();
 
     while (packet = socket.RecvFrom(from)) {
-        if packet->GetSize() == 0 {
+        if (packet->GetSize() == 0) {
             break;
         }
 
@@ -77,8 +77,38 @@ void Plume::HandleRead(Ptr<Socket> socket) {
 
             while ((pos = receivedData.find(delimiter)) != std::string::npos) {
                 parsedPacket = receivedData.substr(0, pos);
-                TODO:
+                //TODO:1.解析出block数据; 2.处理blockhelper; 3.广播(除from)
+
+                receivedData.erase(0,pos+delimiter.length());
             }
+
+            m_bufferedData[from] = receivedData;
+            delete []packetInfo;
         }
     }
 }
+
+void Plume::SendMessage(Messages recvType, Messages respType, rapidjson::Document &d,Ptr<Socket> socket) {
+
+}
+
+void Plume::BroadcastNewBlock(const Block &block,Ipv4Address from) {
+    for (std::vector<Ipv4Address>::const_iterator i=m_peersAddresses.begin();i!=m_peersAddresses.end();++i) {
+        if (*i != from) {
+            const uint8_t delimiter[] = "#";
+            TODO:发送区块
+            m_peersSockets[*i]->Send();
+            m_peersSockets[*i]->Send(delimiter,1,0);
+        }
+    }
+}
+
+void Plume::BroadcastNewBlock(const Block &block) {
+    for (std::vector<Ipv4Address>::const_iterator i=m_peersAddresses.begin();i!=m_peersAddresses.end();++i) {
+        const uint8_t delimiter[] = "#";
+        TODO:发送区块
+        m_peersSockets[*i]->Send();
+        m_peersSockets[*i]->Send(delimiter,1,0);
+    }
+}
+

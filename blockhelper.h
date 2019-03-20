@@ -3,16 +3,20 @@
 
 #include "plume-simulator/block.h"
 
+#include <vector>
+
 using namespace ns3;
 
 class BlockHelper {
 public:
-    BlockHelper();
+    BlockHelper(const Block &block, std::vector<string> parent);
     virtual ~BlockHelper(void);
 
-    Block             block;
-    std::vector<Block> m_parent;
-    std::vector<Block> m_children;
+    void AddChild(string child);
+
+    Block                 m_block;
+    std::vector<string>   m_parent;
+    std::vector<string>   m_children;
 
 };
 

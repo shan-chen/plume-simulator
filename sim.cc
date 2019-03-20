@@ -135,7 +135,7 @@ int main(int argc, char const *argv[])
         plume->m_dag = DAG::DAG();
 
         plume->SetStartTime(Seconds(1));
-        TODO:
+        TODO:按序发送新区块
     }
 
     // 创建socket连接peers
@@ -147,7 +147,7 @@ int main(int argc, char const *argv[])
             peersSockets[*j] = Socket::CreateSocket((*i),TcpSocketFactory::GetTypeId());
             peersSockets[*j]->Connect(InetSocketAddress(*j),listenPort);
         }
-        TODO:再想想怎么搞 整个结构可能还要调
+        //TODO:再想想怎么搞 整个结构可能还要调
         dynamic_cast<Plume*>((*i)->GetApplication(0))->m_peersSockets = peersSockets;
     }
 
