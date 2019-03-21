@@ -11,7 +11,7 @@
 const uint16_t listenPort=8787;
 
 int main(int argc, char const *argv[])
-{    
+{
     std::string format ("Inet");
     std::string input ("src/topology-read/examples/100ms.txt");               //1000
     // std::string input ("src/topology-read/examples/Inet_toposample.txt");  //4000
@@ -135,7 +135,7 @@ int main(int argc, char const *argv[])
         plume->m_dag = DAG::DAG();
 
         plume->SetStartTime(Seconds(1));
-        TODO:按序发送新区块
+        //TODO:按序发送新区块
     }
 
     // 创建socket连接peers
