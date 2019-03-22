@@ -5,6 +5,11 @@
 #include "ns3/ptr.h"
 #include "ns3/address.h"
 
+#include <map>
+#include <vector>
+#include <string>
+#include <time.h>
+
 #include "plume-simulator/message.h"
 #include "plume-simulator/dag.h"
 #include "plume-simulator/block.h"
@@ -20,11 +25,15 @@ public:
 
     std::vector<Ipv4Address> GetPeersAddresses();
     std::vector<Ptr<Socket>> GetPeersSocket();
+
     void HandleAccept(Ptr<Socket> socket, const Address &from);
     void HandleRead(Ptr<Socket> socket);
     void SendMessage(enum Messages recvType, enum Messages respType, rapidjson::Document &d, Ptr<Socket> socket);
     void BroadcastNewBlock(const Block &block,Ipv4Address from);
-    void BroadcastNewBlock(const Block &block)
+    void BroadcastNewBlock(const Block &block);
+
+    std::vector<std::string> FindAllTips(void);
+    void AddBlockToLocal(const Block &block);
 
     uint32_t      m_nodeID;
     Ptr<Socket>   m_socket;
@@ -37,7 +46,8 @@ public:
     std::vector<Ipv4Address>               m_peersAddresses;
     std::map<Ipv4Address, Ptr<Socket>>     m_peersSockets;
     std::map<Address, std::string>         m_bufferedData;
-    std::map<string, Block*>               m_localBlocks;
+    std::map<std::string, Block*>          m_localBlocks;
+    std::map<Block*, BlockHelper*>         m_blockHelpers;
 
     //const int m_plumePort;
 };

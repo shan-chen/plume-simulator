@@ -64,7 +64,7 @@ void Plume::HandleRead(Ptr<Socket> socket) {
         }
 
         if (InetSocketAddress::IsMatchingType(from)) {
-            TODO:结束符还是
+            //TODO:结束符还是
             std::string delimiter = "#";
             std::string parsedPacket;
             size_t pos = 0;
@@ -96,7 +96,7 @@ void Plume::BroadcastNewBlock(const Block &block,Ipv4Address from) {
     for (std::vector<Ipv4Address>::const_iterator i=m_peersAddresses.begin();i!=m_peersAddresses.end();++i) {
         if (*i != from) {
             const uint8_t delimiter[] = "#";
-            TODO:发送区块
+            //TODO:发送区块
             m_peersSockets[*i]->Send();
             m_peersSockets[*i]->Send(delimiter,1,0);
         }
@@ -106,9 +106,45 @@ void Plume::BroadcastNewBlock(const Block &block,Ipv4Address from) {
 void Plume::BroadcastNewBlock(const Block &block) {
     for (std::vector<Ipv4Address>::const_iterator i=m_peersAddresses.begin();i!=m_peersAddresses.end();++i) {
         const uint8_t delimiter[] = "#";
-        TODO:发送区块
+        // TODO:发送区块
         m_peersSockets[*i]->Send();
         m_peersSockets[*i]->Send(delimiter,1,0);
     }
 }
+
+std::vector<std::string> Plume::FindAllTips(void) {
+    std::vector<std::string> tipHashList;
+    for (map<std::string,Block*>::const_iterator iter=m_localBlocks.begin();iter!=m_localBlocks.end();++iter) {
+        if (m_blockHelpers[iter->second]->m_children.size() == 0) {
+            tipHashList.push_back(iter->first);
+        }
+    }
+    return tipHashList;
+}
+
+void Plume::AddBlockToLocal(const Block& block) {
+    m_localBlocks[block.m_hash] = &block;
+    blockHelper = BlockHelper::BlockHelper(block,block.m_parent);
+    m_blockHelpers[&block] = &blockHelper;
+
+    // update dag
+    for (std::vector<std::string>::const_iterator i=block.m_parent.begin();iter!=block.m_parent.end();++i) {
+        map<std::string,Block*> const_iterator iter = m_localBlocks.find(*i);
+        // parent not in dag
+        if (iter==m_localBlocks.end()) {
+            // TODO handle parent not in dag
+            time_t currentTime = time(nullptr));
+        }
+        // parent in dag : add edge
+        else {
+            m_blockHelpers[iter->second]->m_children.push_back(block.m_hash);
+        }
+
+    }
+}
+
+
+
+
+
 

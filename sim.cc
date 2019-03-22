@@ -6,7 +6,11 @@
 #include "ns3/ipv4-nix-vector-helper.h"
 #include "ns3/topology-read-module.h"
 
+#include <vector>
+
 #include "plume-simulator/plume.h"
+
+using namespace ns3;
 
 const uint16_t listenPort=8787;
 
@@ -63,9 +67,9 @@ int main(int argc, char const *argv[])
     for (int i = 0; i < totalLinks; i++) {
         p2p.SetChannelAttribute("Delay",StringValue(delay[i]));
         p2p.SetDeviceAttribute("DataRate", StringValue ("70Mbps"));
-        Ptr<RateErrorModel> em = CreateObject<RateErrorModel> ();
-        em->SetAttribute("ErrorRate", DoubleValue (0.00001));
-        p2p.SetDeviceAttribute("ReceiveErrorModel", PointerValue (em));
+        //Ptr<RateErrorModel> em = CreateObject<RateErrorModel> ();
+        //em->SetAttribute("ErrorRate", DoubleValue (0.00001));
+        //p2p.SetDeviceAttribute("ReceiveErrorModel", PointerValue (em));
         ndc[i] = p2p.Install(nc[i]);
     }
     delete[] delay;
@@ -107,7 +111,7 @@ int main(int argc, char const *argv[])
         }
     }
 
-    // Tpv4Address::GetAny():"0.0.0.0"
+    // Ipv4Address::GetAny():"0.0.0.0"
     InetSocketAddress dst = InetSocketAddress(Ipv4Address::GetAny(),listenPort);
 
     // 安装应用
