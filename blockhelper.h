@@ -18,6 +18,6 @@ public:
     std::vector<string>   m_parent;
     std::vector<string>   m_children;
 
-};
 
+};
 #endif

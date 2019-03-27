@@ -14,14 +14,20 @@
 #include "plume-simulator/dag.h"
 #include "plume-simulator/block.h"
 
+#include "./rapidjson/include/rapidjson/document.h"
+#include "./rapidjson/include/rapidjson/stringbuffer.h"
+#include "./rapidjson/include/rapidjson/writer.h"
+
+
 using namespace ns3;
 
 class Plume : public Application
 {
 public:
     Plume(void);
-    static TypeId GetTypeId(void);
     virtual ~Plume(void);
+    static TypeId GetTypeId(void);
+    void DoDispose(void);
 
     std::vector<Ipv4Address> GetPeersAddresses();
     std::vector<Ptr<Socket>> GetPeersSocket();
@@ -29,8 +35,7 @@ public:
     void HandleAccept(Ptr<Socket> socket, const Address &from);
     void HandleRead(Ptr<Socket> socket);
     void SendMessage(enum Messages recvType, enum Messages respType, rapidjson::Document &d, Ptr<Socket> socket);
-    void BroadcastNewBlock(const Block &block,Ipv4Address from);
-    void BroadcastNewBlock(const Block &block);
+    void BroadcastNewBlock(const Block &block,Ipv4Address from,bool flag);
 
     Block CreateNewBlock(void);
     std::vector<std::string> FindAllTips(void);

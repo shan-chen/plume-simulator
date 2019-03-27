@@ -16,6 +16,8 @@ const uint16_t listenPort=8787;
 
 int main(int argc, char const *argv[])
 {
+    //TODO:mpi-interface : set parallel communication
+
     std::string format ("Inet");
     std::string input ("src/topology-read/examples/100ms.txt");               //1000
     // std::string input ("src/topology-read/examples/Inet_toposample.txt");  //4000
@@ -121,14 +123,15 @@ int main(int argc, char const *argv[])
     for (i=nodes.Begin();i!=nodes.End();++i) {
         uint32_t id = (*i)->GetId();
         Ptr<Socket> socket  = Socket::CreateSocket((*i)),TcpSocketFactory::GetTypeId());
-        TODO:
+        //TODO : set socket buffer size
         //socket->SetAttribute("RcvBufSize", UintegerValue(totalTxBytes));
         socket->Bind(dst);
         socket->Listen();
         socket->SetAcceptCallback (
             MakeNullCallback<bool, Ptr<Socket>, const Address &> (),
-            MakeCallback(Plume::HandleAccept) TODO:
+            MakeCallback(&Plume::HandleAccept)
         );
+        socket->SetRecvCallback(MakeCallback(&Plume::HandleRead));
 
         Ptr<Plume> plume = CreateObject<Plume>();
         (*i)->SetApplication(plume);
@@ -138,7 +141,7 @@ int main(int argc, char const *argv[])
         plume->m_socket = socket;
         plume->m_numOfPeers = ipv4NeighMap[id].size();
         plume->m_peersAddresses = ipv4NeighMap[id];
-        plume->m_dag = DAG::DAG();
+        //plume->m_dag = DAG::DAG();
 
         plume->SetStartTime(Seconds(1));
         //TODO:按序发送新区块
@@ -153,7 +156,7 @@ int main(int argc, char const *argv[])
         std::vector<Ipv4Address> peersAddresses = ipv4NeighMap[id];
         for (std::vector<Ipv4Address>::const_iterator j = peersAddresses.begin(); j != peersAddresses.end(); ++j) {
             peersSockets[*j] = Socket::CreateSocket((*i),TcpSocketFactory::GetTypeId());
-            peersSockets[*j]->Connect(InetSocketAddress(*j),listenPort);
+            peersSockets[*j]->Connect(InetSocketAddress(*j,listenPort));
         }
         //TODO:再想想怎么搞 整个结构可能还要调
         dynamic_cast<Plume*>((*i)->GetApplication(0))->m_peersSockets = peersSockets;

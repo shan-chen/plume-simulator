@@ -3,7 +3,7 @@
 using namespace ns3;
 
 Block::Block(seq) {
-    m_timestamp = time(nullptr);
+    m_timestamp = Simulator::Now().GetSeconds();
     m_seq = seq;
 }
 

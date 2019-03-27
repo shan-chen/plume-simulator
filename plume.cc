@@ -39,6 +39,11 @@ Plume::~Plume(void) {
 
 }
 
+void Plume::DoDispose(void) {
+    m_socket = 0;
+    Application::DoDispose();
+}
+
 std::vector<Ipv4Address> Plume::GetPeersAddresses(void) {
     return m_peersAddresses;
 }
@@ -76,7 +81,33 @@ void Plume::HandleRead(Ptr<Socket> socket) {
 
             while ((pos = receivedData.find(delimiter)) != std::string::npos) {
                 parsedPacket = receivedData.substr(0, pos);
-                //TODO:1.解析出block数据; 2.处理blockhelper; 3.广播(除from)
+                rapidjson::Document d;
+                d.Parse(parsedPacket.c_str());
+                if (!d.IsObject()) {
+                    receivedData.erase(0,pos+delimiter.length());
+                    continue
+                }
+
+                rapidjson::StringBuffer buffer;
+                rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+                d.Accept(writer);
+                NS_LOG_INFO("get message"<<buffer.GetString());
+
+                switch (d["message"].GetInt())
+                {
+                    case BLOCK:
+                        {
+                            //TODO: 1.
+                        }
+                    case GET_BLOCK_REQ:
+                        {
+                            //TODO:
+                        }
+                    case GET_BLOCK_RESP:
+                        {
+                            //TODO:
+                        }
+                }
 
                 receivedData.erase(0,pos+delimiter.length());
             }
@@ -91,29 +122,53 @@ void Plume::SendMessage(Messages recvType, Messages respType, rapidjson::Documen
 
 }
 
-void Plume::BroadcastNewBlock(const Block &block,Ipv4Address from) {
-    for (std::vector<Ipv4Address>::const_iterator i=m_peersAddresses.begin();i!=m_peersAddresses.end();++i) {
-        if (*i != from) {
-            const uint8_t delimiter[] = "#";
-            //TODO:发送区块
-            m_peersSockets[*i]->Send();
-            m_peersSockets[*i]->Send(delimiter,1,0);
-        }
-    }
-}
+// flag = true : broadcast except from
+// flag = false : broadcast all
+void Plume::BroadcastNewBlock(const Block &block,Ipv4Address from,bool flag) {
+    const uint8_t delimiter[] = "#";
+    rapidjson::Document d;
+    rapidjson::Value value;
+    rapidjson::Value parents(rapidjson::kArrayType);
+    std::ostringstream stringStream;
+    std::string blockHash = stringStream.str();
+    d.SetObject();
 
-void Plume::BroadcastNewBlock(const Block &block) {
-    for (std::vector<Ipv4Address>::const_iterator i=m_peersAddresses.begin();i!=m_peersAddresses.end();++i) {
-        const uint8_t delimiter[] = "#";
-        // TODO:发送区块
-        m_peersSockets[*i]->Send();
+    value = BLOCK;
+    d.AddMember("message",value,d.GetAllocator());
+    value.SetString(block.m_hash);
+    d.AddMember("hash",value,d.GetAllocator());
+    value.SetInt(block.m_seq);
+    d.AddMember("seq",value,d.GetAllocator());
+    value.SetDouble(block.m_timestamp);
+    for (std::vector<std::string>const_iterator i=block.m_parent.begin();i!=block.m_parent.end();++i) {
+        value.SetString(*i);
+        parents.PushBack(value,d.GetAllocator());
+    }
+    d.AddMember("parents",parents,d.GetAllocator());
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    d.Accept(writer);
+
+    const uint8_t delimiter[] = "#";
+    for (std::vector<IPv4Address>::const_iterator i=m_peersAddresses.begin();i!=m_peersAddresses.end();++i) {
+        if (*i == from) {
+            if (flag) {
+                continue
+            }
+            else {
+                m_peersSockets[*i]->Send(reinterpret_cast<const uint8_t*>(buffer.GetString()),buffer.GetSize(),0);
+                m_peersSockets[*i]->Send(delimiter,1,0);
+            }
+        }
+        m_peersSockets[*i]->Send(reinterpret_cast<const uint8_t*>(buffer.GetString()),buffer.GetSize(),0);
         m_peersSockets[*i]->Send(delimiter,1,0);
     }
 }
 
 Block Plume::CreateNewBlock(void) {
     // no transactions
-    Block block = Block::Block(m_seq);
+    Block block(m_seq);
     std::vector<std::string> tips = FindAllTips();
     block.m_parent = tips;
     block.m_hash = block.CalBlockHash();
