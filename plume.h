@@ -32,10 +32,12 @@ public:
     void BroadcastNewBlock(const Block &block,Ipv4Address from);
     void BroadcastNewBlock(const Block &block);
 
+    Block CreateNewBlock(void);
     std::vector<std::string> FindAllTips(void);
     void AddBlockToLocal(const Block &block);
 
     uint32_t      m_nodeID;
+    int           m_seq;
     Ptr<Socket>   m_socket;
     //Address       m_local;
     //TypeId        m_tid;

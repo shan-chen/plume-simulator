@@ -117,6 +117,7 @@ int main(int argc, char const *argv[])
     // 安装应用
     NS_LOG_INFO("add application plume")
     NodeContainer::Iterator i;
+    int count = 1;
     for (i=nodes.Begin();i!=nodes.End();++i) {
         uint32_t id = (*i)->GetId();
         Ptr<Socket> socket  = Socket::CreateSocket((*i)),TcpSocketFactory::GetTypeId());
@@ -133,6 +134,7 @@ int main(int argc, char const *argv[])
         (*i)->SetApplication(plume);
 
         plume->m_nodeID = id;
+        plume->m_seq = count;
         plume->m_socket = socket;
         plume->m_numOfPeers = ipv4NeighMap[id].size();
         plume->m_peersAddresses = ipv4NeighMap[id];
@@ -140,6 +142,8 @@ int main(int argc, char const *argv[])
 
         plume->SetStartTime(Seconds(1));
         //TODO:按序发送新区块
+
+        count++;
     }
 
     // 创建socket连接peers

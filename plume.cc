@@ -64,7 +64,6 @@ void Plume::HandleRead(Ptr<Socket> socket) {
         }
 
         if (InetSocketAddress::IsMatchingType(from)) {
-            //TODO:结束符还是
             std::string delimiter = "#";
             std::string parsedPacket;
             size_t pos = 0;
@@ -112,6 +111,15 @@ void Plume::BroadcastNewBlock(const Block &block) {
     }
 }
 
+Block Plume::CreateNewBlock(void) {
+    // no transactions
+    Block block = Block::Block(m_seq);
+    std::vector<std::string> tips = FindAllTips();
+    block.m_parent = tips;
+    block.m_hash = block.CalBlockHash();
+    return block;
+}
+
 std::vector<std::string> Plume::FindAllTips(void) {
     std::vector<std::string> tipHashList;
     for (map<std::string,Block*>::const_iterator iter=m_localBlocks.begin();iter!=m_localBlocks.end();++iter) {
@@ -131,7 +139,7 @@ void Plume::AddBlockToLocal(const Block& block) {
     for (std::vector<std::string>::const_iterator i=block.m_parent.begin();iter!=block.m_parent.end();++i) {
         map<std::string,Block*> const_iterator iter = m_localBlocks.find(*i);
         // parent not in dag
-        if (iter==m_localBlocks.end()) {
+        if (iter == m_localBlocks.end()) {
             // TODO handle parent not in dag
             time_t currentTime = time(nullptr));
         }
@@ -142,9 +150,3 @@ void Plume::AddBlockToLocal(const Block& block) {
 
     }
 }
-
-
-
-
-
-
