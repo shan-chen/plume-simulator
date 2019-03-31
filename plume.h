@@ -38,8 +38,8 @@ public:
     Block CreateNewBlock(void);
     std::vector<std::string> FindAllTips(void);
     std::vector<std::string> AddBlockToLocal(const Block &block);
-    void GetOldBlocks(std::vector<std::string> parents);
-    void SendBlocks(std::vector<Block> blocks,Ipv4Address dst);
+    void SendBlocksReq(std::vector<std::string> parents);
+    void SendBlock(const Block& block,Ipv4Address dst);
 
     uint32_t      m_nodeID;
     int           m_seq;
