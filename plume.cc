@@ -59,9 +59,10 @@ void Plume::HandleAccept(Ptr<Socket> socket, const Address &from) {
 
 void Plume::HandleRead(Ptr<Socket> socket) {
     NS_LOG_FUNCTION(this<<socket);
+
     Ptr<Packet> packet;
     Address from;
-    double newBlockReceiveTime = Simulator::Now ().GetSeconds();
+    double newBlockReceiveTime = Simulator::Now().GetSeconds();
 
     while (packet = socket.RecvFrom(from)) {
         if (packet->GetSize() == 0) {
@@ -97,13 +98,28 @@ void Plume::HandleRead(Ptr<Socket> socket) {
                 {
                     case BLOCK:
                         {
-                            //TODO: 1.
+                            Block newBlock;
+                            newBlock.m_seq = d["seq"].GetInt();
+                            newBlock.m_hash = d["hash"].GetString();
+                            newBlock.m_timestamp = d["timestamp"].GetDouble();
+                            //TODO timeout
+                            for (int i = 0;i < d["parents"].Size();i++) {
+                                newBlock.m_parent.push_back(d["parents"][i].GetString());
+                            }
+                            std::vector<std::string> unfinedParents = AddBlockToLocal(newBlock);
+                            Ipv4Address from_ipv4 = InetSocketAddress::ConvertFrom(from)).GetIpv4();
+                            BroadcastNewBlock(newBlock,from_ipv4,true);
+                            GetOldBlocks(unfinedParents,from_ipv4);
                         }
-                    case GET_BLOCK_REQ:
+                    case GET_BLOCKS_REQ:
                         {
-                            //TODO:
+                            for (int i = 0;i < d["parents"].Size();i++) {
+                                std::string parent = d["parents"][i].GetString();
+                                Block block = *m_localBlocks[parent];
+                                //TODO
+                            }
                         }
-                    case GET_BLOCK_RESP:
+                    case GET_BLOCKS_RESP:
                         {
                             //TODO:
                         }
@@ -118,10 +134,6 @@ void Plume::HandleRead(Ptr<Socket> socket) {
     }
 }
 
-void Plume::SendMessage(Messages recvType, Messages respType, rapidjson::Document &d,Ptr<Socket> socket) {
-
-}
-
 // flag = true : broadcast except from
 // flag = false : broadcast all
 void Plume::BroadcastNewBlock(const Block &block,Ipv4Address from,bool flag) {
@@ -129,8 +141,6 @@ void Plume::BroadcastNewBlock(const Block &block,Ipv4Address from,bool flag) {
     rapidjson::Document d;
     rapidjson::Value value;
     rapidjson::Value parents(rapidjson::kArrayType);
-    std::ostringstream stringStream;
-    std::string blockHash = stringStream.str();
     d.SetObject();
 
     value = BLOCK;
@@ -140,6 +150,7 @@ void Plume::BroadcastNewBlock(const Block &block,Ipv4Address from,bool flag) {
     value.SetInt(block.m_seq);
     d.AddMember("seq",value,d.GetAllocator());
     value.SetDouble(block.m_timestamp);
+    d.AddMember("timestamp",value,d.GetAllocator());
     for (std::vector<std::string>const_iterator i=block.m_parent.begin();i!=block.m_parent.end();++i) {
         value.SetString(*i);
         parents.PushBack(value,d.GetAllocator());
@@ -150,7 +161,6 @@ void Plume::BroadcastNewBlock(const Block &block,Ipv4Address from,bool flag) {
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     d.Accept(writer);
 
-    const uint8_t delimiter[] = "#";
     for (std::vector<IPv4Address>::const_iterator i=m_peersAddresses.begin();i!=m_peersAddresses.end();++i) {
         if (*i == from) {
             if (flag) {
@@ -185,23 +195,59 @@ std::vector<std::string> Plume::FindAllTips(void) {
     return tipHashList;
 }
 
-void Plume::AddBlockToLocal(const Block& block) {
+std::vector<std::string> Plume::AddBlockToLocal(const Block& block) {
     m_localBlocks[block.m_hash] = &block;
     blockHelper = BlockHelper::BlockHelper(block,block.m_parent);
     m_blockHelpers[&block] = &blockHelper;
 
-    // update dag
+    // update local dag
+    std::vector<std::string> unfinedParents;
     for (std::vector<std::string>::const_iterator i=block.m_parent.begin();iter!=block.m_parent.end();++i) {
         map<std::string,Block*> const_iterator iter = m_localBlocks.find(*i);
         // parent not in dag
         if (iter == m_localBlocks.end()) {
-            // TODO handle parent not in dag
-            time_t currentTime = time(nullptr));
+            //TODO timeout
+            unfinedParents.push_back(*i);
         }
         // parent in dag : add edge
         else {
             m_blockHelpers[iter->second]->m_children.push_back(block.m_hash);
         }
+    }
+    return unfinedParents;
+}
 
+void Plume::GetOldBlocks(std::vector<std::string> unfinedParents, Ipv4Address from) {
+    const uint8_t delimiter[] = "#";
+    rapidjson::Document d;
+    rapidjson::Value value;
+    rapidjson::Value parents(rapidjson::kArrayType);
+    d.SetObject();
+    value = GET_BLOCKS_REQ;
+    d.AddMember("message",value,d.GetAllocator());
+    for (std::vector<std::string>::const_iterator i = unfinedParents.begin(); iter != unfinedParents.end(); i++) {
+        value.SetString(*i);
+        parents.PushBack(value,d.GetAllocator());
+    }
+    d.AddMember("parents",parents,d.GetAllocator());
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    d.Accept(writer);
+
+    m_peersSockets[from]->Send(reinterpret_cast<const uint8_t*>(buffer.GetString()),buffer.GetSize(),0);
+    m_peersSockets[from]->Send(delimiter,1,0);
+}
+
+void Plume::SendBlocks(std::vector<Block> blocks,Ipv4Address dst) {
+    const uint8_t delimiter[] = "#";
+    rapidjson::Document d;
+    rapidjson::Value value;
+    rapidjson::Value blockList(rapidjson::kArrayType);
+    d.SetObject();
+    value = GET_BLOCKS_RESP;
+    d.AddMember("message",value,d.GetAllocator());
+    for (std::vector<Block>::const_iterator i = blocks.begin(); i != blocks.end(); i++) {
+        //TODO
     }
 }

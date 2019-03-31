@@ -4,9 +4,9 @@
 using namespace ns3;
 
 enum Messages {
-    BLOCK,          //0
-    GET_BLOCK_REQ,  //1
-    GET_BLOCK_RESP, //2
+    BLOCK,           //0
+    GET_BLOCKS_REQ,  //1
+    GET_BLOCKS_RESP, //2
 };
 
 #endif

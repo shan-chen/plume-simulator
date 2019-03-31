@@ -34,12 +34,12 @@ public:
 
     void HandleAccept(Ptr<Socket> socket, const Address &from);
     void HandleRead(Ptr<Socket> socket);
-    void SendMessage(enum Messages recvType, enum Messages respType, rapidjson::Document &d, Ptr<Socket> socket);
     void BroadcastNewBlock(const Block &block,Ipv4Address from,bool flag);
-
     Block CreateNewBlock(void);
     std::vector<std::string> FindAllTips(void);
-    void AddBlockToLocal(const Block &block);
+    std::vector<std::string> AddBlockToLocal(const Block &block);
+    void GetOldBlocks(std::vector<std::string> parents);
+    void SendBlocks(std::vector<Block> blocks,Ipv4Address dst);
 
     uint32_t      m_nodeID;
     int           m_seq;

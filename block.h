@@ -3,6 +3,7 @@
 
 #include <time.h>
 #include <algorithm>
+#include <sstream>
 
 using namespace ns3;
 

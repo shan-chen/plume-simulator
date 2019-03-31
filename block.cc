@@ -13,4 +13,8 @@ Block::~Block(void) {
 
 std::string Block::CalBlockHash(void) {
     //TODO calculate block hash
+    std::stringstream stream;
+    stream << m_seq;
+    return stream.str();
 }
+
