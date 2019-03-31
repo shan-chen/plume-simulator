@@ -40,6 +40,7 @@ public:
     std::vector<std::string> AddBlockToLocal(const Block &block);
     void SendBlocksReq(std::vector<std::string> parents);
     void SendBlock(const Block& block,Ipv4Address dst);
+    void GetNewBlock(void);
 
     uint32_t      m_nodeID;
     int           m_seq;

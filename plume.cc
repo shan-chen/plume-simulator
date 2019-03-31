@@ -191,6 +191,7 @@ Block Plume::CreateNewBlock(void) {
     std::vector<std::string> tips = FindAllTips();
     block.m_parent = tips;
     block.m_hash = block.CalBlockHash();
+    // padding block
     return block;
 }
 
@@ -274,4 +275,9 @@ void Plume::SendBlock(const Block& block,Ipv4Address dst) {
 
     m_peersSockets[dst]->Send(reinterpret_cast<const uint8_t*>(buffer.GetString()),buffer.GetSize(),0);
     m_peersSockets[dst]->Send(delimiter,1,0);
+}
+
+void Plume::GetNewBlock(void) {
+    Block block = CreateNewBlock();
+    BroadcastNewBlock(block,Ipv4Address::GetAny(),false);
 }
