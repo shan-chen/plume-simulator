@@ -1,7 +1,7 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
-using namespace ns3;
+namespace ns3 {
 
 enum Messages {
     BLOCK,           //0
@@ -9,4 +9,5 @@ enum Messages {
     GET_BLOCKS_RESP, //2
 };
 
+}
 #endif

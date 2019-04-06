@@ -1,8 +1,14 @@
-#include "plume-simulator/block.h"
+#include "block.h"
+
+#include "ns3/simulator.h"
 
 using namespace ns3;
 
-Block::Block(seq) {
+Block::Block() {
+
+}
+
+Block::Block(int seq) {
     m_timestamp = Simulator::Now().GetSeconds();
     m_seq = seq;
 }

@@ -8,18 +8,22 @@
 
 #include <vector>
 
-#include "plume-simulator/plume.h"
+#include "ns3/plume-module.h"
 
 using namespace ns3;
 
 const uint16_t listenPort=8787;
 
-int main(int argc, char const *argv[])
+int main(int argc, char *argv[])
 {
     //TODO:mpi-interface : set parallel communication
+    NS_LOG_COMPONENT_DEFINE("sim");
+    LogComponentEnable("plume",LOG_LEVEL_INFO);
+    LogComponentEnable("sim",LOG_LEVEL_INFO);
 
+    NS_LOG_INFO("program start");
     std::string format ("Inet");
-    std::string input ("src/topology-read/examples/100ms.txt");               //1000
+    std::string input ("/home/ubuntu/repos/ns-3-allinone/ns-3-dev/src/topology-read/examples/Inet_toposample.txt");               //1000
     // std::string input ("src/topology-read/examples/Inet_toposample.txt");  //4000
 
     CommandLine cmd;
@@ -29,23 +33,26 @@ int main(int argc, char const *argv[])
 
     // 读取拓扑
     TopologyReaderHelper topoHelp;
+    NS_LOG_INFO(input);
+    NS_LOG_INFO(format);
     topoHelp.SetFileName(input);
     topoHelp.SetFileType(format);
     Ptr<TopologyReader> topoReader = topoHelp.GetTopologyReader();
     if (topoReader == 0) {
         NS_LOG_ERROR("Problems get topology file. Exit.");
-        return -1;
+        return 1;
     }
 
     NodeContainer nodes = topoReader->Read();
+    NS_LOG_INFO(nodes.GetN());
 
     if (topoReader->LinksSize() == 0) {
         NS_LOG_ERROR("Problems reading the topology file. Exit.");
-        return -1;
+        return 2;
     }
 
     // 给节点安装协议栈
-    NS_LOG_INFO("creating internet stack")
+    NS_LOG_INFO("creating internet stack");
     InternetStackHelper stack;
     stack.Install(nodes);
 
@@ -77,7 +84,7 @@ int main(int argc, char const *argv[])
     delete[] delay;
 
     // 创建子网
-    NS_LOG_INFO("setting ipv4 addresses")
+    NS_LOG_INFO("setting ipv4 addresses");
     Ipv4AddressHelper address;
     address.SetBase("10.0.0.0", "255.255.255.252");
     NS_LOG_INFO("creating ipv4 interfaces");
@@ -114,43 +121,47 @@ int main(int argc, char const *argv[])
     }
 
     // Ipv4Address::GetAny():"0.0.0.0"
-    InetSocketAddress dst = InetSocketAddress(Ipv4Address::GetAny(),listenPort);
+    //InetSocketAddress dst = InetSocketAddress(Ipv4Address::GetAny(),listenPort);
 
     // 安装应用
-    NS_LOG_INFO("add application plume")
-    NodeContainer::Iterator i;
+    NS_LOG_INFO("add application plume");
+    //NodeContainer::Iterator i;
     int count = 1;
-    for (i=nodes.Begin();i!=nodes.End();++i) {
+    for (NodeContainer::Iterator i=nodes.Begin();i!=nodes.End();++i) {
         uint32_t id = (*i)->GetId();
-        Ptr<Socket> socket  = Socket::CreateSocket((*i)),TcpSocketFactory::GetTypeId());
+        // Ptr<Socket> socket  = Socket::CreateSocket((*i),TcpSocketFactory::GetTypeId());
         //TODO : set socket buffer size
         //socket->SetAttribute("RcvBufSize", UintegerValue(totalTxBytes));
-        socket->Bind(dst);
-        socket->Listen();
-        socket->SetAcceptCallback (
-            MakeNullCallback<bool, Ptr<Socket>, const Address &> (),
-            MakeCallback(&Plume::HandleAccept)
-        );
-        socket->SetRecvCallback(MakeCallback(&Plume::HandleRead));
+        //socket->Bind(dst);
+        //socket->Listen();
 
         Ptr<Plume> plume = CreateObject<Plume>();
-        (*i)->SetApplication(plume);
+        (*i)->AddApplication(plume);
 
         plume->m_nodeID = id;
         plume->m_seq = count;
-        plume->m_socket = socket;
+        //plume->m_socket = socket;
         plume->m_numOfPeers = ipv4NeighMap[id].size();
         plume->m_peersAddresses = ipv4NeighMap[id];
 
         plume->SetStartTime(Seconds(1));
+        
+        /*
+        socket->SetAcceptCallback (
+            MakeNullCallback<bool, Ptr<Socket>, const Address &> (),
+            MakeCallback(&Plume::HandleAccept,plume)
+            );
+        socket->SetRecvCallback(MakeCallback(&Plume::HandleRead,plume));
+        */
         //TODO set block time
-        Simulator::Schedule(Seconds(count+1),&Plume::GetNewBlock);
+        Simulator::Schedule(Seconds(count+1),&Plume::GetNewBlock,plume);
 
         count++;
     }
-
+    
+    /*
     // 创建socket连接peers
-    for (i=nodes.Begin();i!=nodes.End();++i) {
+    for (NodeContainer::Iterator i=nodes.Begin();i!=nodes.End();++i) {
         uint32_t id = (*i)->GetId();
         std::map<Ipv4Address,Ptr<Socket>> peersSockets;
         std::vector<Ipv4Address> peersAddresses = ipv4NeighMap[id];
@@ -158,9 +169,9 @@ int main(int argc, char const *argv[])
             peersSockets[*j] = Socket::CreateSocket((*i),TcpSocketFactory::GetTypeId());
             peersSockets[*j]->Connect(InetSocketAddress(*j,listenPort));
         }
-        //TODO:再想想怎么搞
-        dynamic_cast<Plume*>((*i)->GetApplication(0))->m_peersSockets = peersSockets;
+        //dynamic_cast<Plume*>((*i)->GetApplication(0))->m_peersSockets = peersSockets;
     }
+    */
 
     NS_LOG_INFO("Simulation Start");
     Simulator::Run();

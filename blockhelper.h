@@ -1,23 +1,26 @@
 #ifndef BLOCKHELPER_H
 #define BLOCKHELPER_H
 
-#include "plume-simulator/block.h"
+#include "block.h"
 
 #include <vector>
 
-using namespace ns3;
+namespace ns3 {
 
 class BlockHelper {
 public:
-    BlockHelper(const Block &block, std::vector<string> parent);
+    BlockHelper(void);
+    BlockHelper(Block &block, std::vector<std::string> parent);
     virtual ~BlockHelper(void);
 
-    void AddChild(string child);
+    void AddChild(std::string child);
 
-    Block                 m_block;
-    std::vector<string>   m_parent;
-    std::vector<string>   m_children;
+    Block                      m_block;
+    std::vector<std::string>   m_parent;
+    std::vector<std::string>   m_children;
 
 
 };
+
+}
 #endif

@@ -5,11 +5,12 @@
 #include <algorithm>
 #include <sstream>
 
-using namespace ns3;
+namespace ns3 {
 
 class Block {
 public:
-    Block();
+    Block(void);
+    Block(int seq);
     virtual ~Block(void);
 
     std::string CalBlockHash(void);
@@ -19,7 +20,8 @@ public:
     int                 m_seq;
     double              m_timestamp;
     std::string         m_hash;
-    std::vector<string> m_parent;
+    std::vector<std::string> m_parent;
 };
 
+}
 #endif
