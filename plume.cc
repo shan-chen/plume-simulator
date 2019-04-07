@@ -49,6 +49,7 @@ void Plume::StartApplication(void) {
       m_socket = Socket::CreateSocket(GetNode(),TcpSocketFactory::GetTypeId());
       m_socket->Bind(local);
       m_socket->Listen();
+      m_socket->SetAttribute("RcvBufSize",UintegerValue(1024*1024));
       m_socket->SetAcceptCallback(
           MakeNullCallback<bool, Ptr<Socket>, const Address &>(),
           MakeCallback(&Plume::HandleAccept,this)
@@ -62,6 +63,7 @@ void Plume::StartApplication(void) {
 }
 
 void Plume::StopApplication(void) {
+  NS_LOG_FUNCTION(this);
   for (std::vector<Ipv4Address>::const_iterator i=m_peersAddresses.begin();i!=m_peersAddresses.end();++i) {
     m_peersSockets[*i]->Close();
   }
@@ -120,15 +122,18 @@ void Plume::HandleRead(Ptr<Socket> socket) {
                 rapidjson::StringBuffer buffer;
                 rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
                 d.Accept(writer);
-                NS_LOG_INFO("get message"<<GetNode()->GetId()<<buffer.GetString());
+                NS_LOG_INFO(GetNode()->GetId()<<" get message from "<<from<<buffer.GetString());
 
                 switch (d["message"].GetInt())
                 {
                     case BLOCK:
                         {
                             Block newBlock;
-                            newBlock.m_seq = d["seq"].GetInt();
                             newBlock.m_hash = d["hash"].GetString();
+                            if (m_localBlocks.find(newBlock.m_hash)!=m_localBlocks.end()) {
+                               break;
+                            }
+                            newBlock.m_seq = d["seq"].GetInt();
                             newBlock.m_timestamp = d["timestamp"].GetDouble();
                             //TODO timeout
                             for (uint8_t i = 0;i < d["parents"].Size();i++) {
@@ -140,15 +145,18 @@ void Plume::HandleRead(Ptr<Socket> socket) {
                             if (unfinedParents.size()>0) {
                                 SendBlocksReq(unfinedParents,from_ipv4);
                             }
+                            // must have break!!!
+                            break;
                         }
                     case GET_BLOCKS_REQ:
                         {
                             Ipv4Address from_ipv4 = InetSocketAddress::ConvertFrom(from).GetIpv4();
                             for (uint8_t i = 0;i < d["parents"].Size();i++) {
                                 std::string parent = d["parents"][i].GetString();
-                                Block block = *m_localBlocks[parent];
+                                Block block = m_localBlocks[parent];
                                 SendBlock(block,from_ipv4);
                             }
+                            break;
                         }
                     case GET_BLOCKS_RESP:
                         {
@@ -161,6 +169,7 @@ void Plume::HandleRead(Ptr<Socket> socket) {
                                 newBlock.m_parent.push_back(d["parents"][i].GetString());
                             }
                             AddBlockToLocal(newBlock);
+                            break;
                         }
                 }
 
@@ -175,7 +184,8 @@ void Plume::HandleRead(Ptr<Socket> socket) {
 
 // flag = true : broadcast except from
 // flag = false : broadcast all
-void Plume::BroadcastNewBlock(const Block &block,Ipv4Address from,bool flag) {
+void Plume::BroadcastNewBlock(const Block &block,Ipv4Address from,bool flag) {  
+    NS_LOG_FUNCTION(this);
     const uint8_t delimiter[] = "#";
     rapidjson::Document d;
     rapidjson::Value value;
@@ -223,13 +233,15 @@ Block Plume::CreateNewBlock(void) {
     block.m_parent = tips;
     block.m_hash = block.CalBlockHash();
     // padding block
+    m_localBlocks[block.m_hash] = block;
     return block;
 }
 
 std::vector<std::string> Plume::FindAllTips(void) {
+    NS_LOG_FUNCTION(this);
     std::vector<std::string> tipHashList;
-    for (std::map<std::string,Block*>::const_iterator iter=m_localBlocks.begin();iter!=m_localBlocks.end();++iter) {
-        if (m_blockHelpers[iter->second]->m_children.size() == 0) {
+    for (std::map<std::string,Block>::const_iterator iter=m_localBlocks.begin();iter!=m_localBlocks.end();++iter) {
+        if (m_blockHelpers[iter->second.m_hash].m_children.size() == 0) {
             tipHashList.push_back(iter->first);
         }
     }
@@ -237,14 +249,14 @@ std::vector<std::string> Plume::FindAllTips(void) {
 }
 
 std::vector<std::string> Plume::AddBlockToLocal(Block& block) {
-    m_localBlocks[block.m_hash] = &block;
+    m_localBlocks[block.m_hash] = block;
     BlockHelper blockHelper = BlockHelper(block,block.m_parent);
-    m_blockHelpers[&block] = &blockHelper;
+    m_blockHelpers[block.m_hash] = blockHelper;
 
     // update local dag
     std::vector<std::string> unfinedParents;
     for (std::vector<std::string>::const_iterator i=block.m_parent.begin();i!=block.m_parent.end();++i) {
-        std::map<std::string,Block*>::const_iterator iter = m_localBlocks.find(*i);
+        std::map<std::string,Block>::const_iterator iter = m_localBlocks.find(*i);
         // parent not in dag
         if (iter == m_localBlocks.end()) {
             //TODO timeout
@@ -252,13 +264,14 @@ std::vector<std::string> Plume::AddBlockToLocal(Block& block) {
         }
         // parent in dag : add edge
         else {
-            m_blockHelpers[iter->second]->m_children.push_back(block.m_hash);
+            m_blockHelpers[iter->second.m_hash].m_children.push_back(block.m_hash);
         }
     }
     return unfinedParents;
 }
 
 void Plume::SendBlocksReq(std::vector<std::string> unfinedParents, Ipv4Address from) {
+    NS_LOG_FUNCTION(this);
     const uint8_t delimiter[] = "#";
     rapidjson::Document d;
     rapidjson::Value value;
@@ -278,9 +291,11 @@ void Plume::SendBlocksReq(std::vector<std::string> unfinedParents, Ipv4Address f
 
     m_peersSockets[from]->Send(reinterpret_cast<const uint8_t*>(buffer.GetString()),buffer.GetSize(),0);
     m_peersSockets[from]->Send(delimiter,1,0);
+    NS_LOG_INFO(GetNode()->GetId()<<"send req to "<<from<<buffer.GetString());
 }
 
 void Plume::SendBlock(const Block& block,Ipv4Address dst) {
+    NS_LOG_FUNCTION(this);
     const uint8_t delimiter[] = "#";
     rapidjson::Document d;
     rapidjson::Value value;
@@ -306,6 +321,7 @@ void Plume::SendBlock(const Block& block,Ipv4Address dst) {
 
     m_peersSockets[dst]->Send(reinterpret_cast<const uint8_t*>(buffer.GetString()),buffer.GetSize(),0);
     m_peersSockets[dst]->Send(delimiter,1,0);
+    NS_LOG_INFO("send block resp finish");
 }
 
 void Plume::GetNewBlock(void) {

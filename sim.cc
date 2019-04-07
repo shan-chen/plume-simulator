@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
 
     NS_LOG_INFO("program start");
     std::string format ("Inet");
-    std::string input ("/home/ubuntu/repos/ns-3-allinone/ns-3-dev/src/topology-read/examples/Inet_toposample.txt");               //1000
+    std::string input ("/home/ubuntu/repos/ns-3-allinone/ns-3-dev/scratch/topo.txt");               //1000
     // std::string input ("src/topology-read/examples/Inet_toposample.txt");  //4000
 
     CommandLine cmd;
@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
         socket->SetRecvCallback(MakeCallback(&Plume::HandleRead,plume));
         */
         //TODO set block time
-        Simulator::Schedule(Seconds(count+1),&Plume::GetNewBlock,plume);
+        Simulator::Schedule(Seconds(count+6),&Plume::GetNewBlock,plume);
 
         count++;
     }
